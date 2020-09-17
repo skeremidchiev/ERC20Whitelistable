@@ -9,7 +9,7 @@ contract Whitelistable is Ownable {
     modifier onlyWhitelistedMember(address _address) {
         require(
             whitelist[_address] == true,
-            "Whitelistable: caller is not the whitelister"
+            "Whitelistable: address is not the whitelister"
         );
         _;
     }

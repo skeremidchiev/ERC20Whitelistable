@@ -9,7 +9,15 @@ contract ERC20Whitelistable is ERC20, Whitelistable {
         ERC20("LimeChain exam token", "LET")
         public
     {
-        addToWhitelist(msg.sender);
+    }
+
+    function mint(
+        address account,
+        uint256 amount
+    ) 
+        public
+    {
+        super._mint(account, amount);
     }
 
     function _beforeTokenTransfer(
