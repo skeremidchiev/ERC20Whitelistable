@@ -16,6 +16,7 @@ contract ERC20Whitelistable is ERC20, Whitelistable {
         uint256 amount
     ) 
         public
+        OnlyOwner
     {
         super._mint(account, amount);
     }
