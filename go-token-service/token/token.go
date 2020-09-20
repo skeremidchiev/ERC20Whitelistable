@@ -70,7 +70,8 @@ func GetWhitelistableToken() (*WhitelistableToken, error) {
 	}
 
 	trOpts := bind.NewKeyedTransactor(privateKey)
-	trOpts.Nonce = big.NewInt(int64(nonce))
+	// start nonce with one down and increase it just before transaction
+	trOpts.Nonce = big.NewInt(int64(nonce - 1))
 	trOpts.Value = big.NewInt(0)     // in wei
 	trOpts.GasLimit = uint64(300000) // in units
 	trOpts.GasPrice = gasPrice
@@ -123,11 +124,10 @@ func (wlt *WhitelistableToken) WhitelistAddress(i *WhitelistInput) (*TxOutput, e
 		common.HexToAddress(i.Address),
 	)
 	if err != nil {
-		fmt.Println("GrantRole: ", err)
 		return txo, err
 	}
 
-	txo.OK = true
+	txo.OK = wlt.getStatusOfTX(tx)
 	txo.TransactionHash = tx.Hash().Hex()
 	return txo, nil
 }
@@ -151,25 +151,25 @@ func (wlt *WhitelistableToken) Mint(i *MintInput) (*TxOutput, error) {
 		return txo, err
 	}
 
-	txo.OK = true
+	txo.OK = wlt.getStatusOfTX(tx)
 	txo.TransactionHash = tx.Hash().Hex()
 	return txo, nil
 }
 
 // getStatusOfTX checks transaction Status - returns error on Status != 0
-func (wlt *WhitelistableToken) getStatusOfTX(tx *types.Transaction) error {
+func (wlt *WhitelistableToken) getStatusOfTX(tx *types.Transaction) bool {
 	receipt, err := bind.WaitMined(context.Background(), wlt.EthClient, tx)
 	if err != nil {
-		return err
+		return false
 	}
 
 	// 0 - on revert or failure and 1 - on success
 	// https://ethereum.stackexchange.com/questions/28889/what-is-the-exact-meaning-of-a-transactions-new-receipt-status-field
 	if receipt.Status != 1 {
-		return errors.New("Transaction failed with Status 0 (Expected Revert)")
+		return false
 	}
 
-	return nil
+	return true
 }
 
 // incrementNonce manages nonce
