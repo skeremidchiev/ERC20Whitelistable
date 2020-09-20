@@ -1,10 +1,10 @@
 package config
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"sync"
-	"io/ioutil"
-	"encoding/json"
 )
 
 type appConfig struct {

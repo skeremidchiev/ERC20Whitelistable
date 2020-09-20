@@ -3,8 +3,8 @@ package whitelistableToken
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -12,9 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/core/types"
 
-	"ERC20Whitelistable_Token_Service/contracts"
-	"ERC20Whitelistable_Token_Service/config"
+
+	"ERC20Whitelistable/go-token-service/config"
+	"ERC20Whitelistable/go-token-service/contracts"
 )
 
 type WhitelistableToken struct {
@@ -104,7 +106,7 @@ func GetWhitelistableToken() (*WhitelistableToken, error) {
 }
 
 func (wlt *WhitelistableToken) WhitelistAddress(address string) error {
-	wlt.incrementNonce()
+	defer wlt.incrementNonce()
 	tx, err := wlt.Token.GrantRole(
 		wlt.TransactOpts,
 		wlt.WhitelistedRole,
@@ -115,12 +117,19 @@ func (wlt *WhitelistableToken) WhitelistAddress(address string) error {
 	}
 	// TODO: remove
 	// TODO: no error on revert
-	fmt.Printf("tx sent: %s\n", tx/*.Hash().Hex()*/)
+	fmt.Printf("WhitelistAddress tx sent: %s\n", tx.Hash().Hex())
+
+	err = wlt.getStatusOfTX(tx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (wlt *WhitelistableToken) Mint(address string, amount int) error {
-	wlt.incrementNonce()
+	defer wlt.incrementNonce()
+
 	tx, err := wlt.Token.Mint(
 		wlt.TransactOpts,
 		common.HexToAddress(address),
@@ -129,14 +138,33 @@ func (wlt *WhitelistableToken) Mint(address string, amount int) error {
 	if err != nil {
 		return err
 	}
-
 	// TODO: remove
-	// TODO: no error on revert
-	fmt.Printf("tx sent: %+v\n", tx)
-	fmt.Printf("tx sent: %s\n", tx.Hash().Hex())
+	fmt.Printf("Mint tx sent: %s\n", tx.Hash().Hex())
+
+	err = wlt.getStatusOfTX(tx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
+// getStatusOfTX checks transaction Status - returns error on Status != 0
+func (wlt *WhitelistableToken) getStatusOfTX(tx *types.Transaction) error {
+	receipt, err := bind.WaitMined(context.Background(), wlt.EthClient, tx)
+	if err != nil {
+		return err
+	}
+
+	// 0 - on revert or failure and 1 - on success
+	// https://ethereum.stackexchange.com/questions/28889/what-is-the-exact-meaning-of-a-transactions-new-receipt-status-field
+	if receipt.Status != 1 {
+		return errors.New("Transaction failed with Status 0 (Expected Revert)")
+	}
+
+	return nil
+}
+
+// incrementNonce manages nonce
 func (wlt *WhitelistableToken) incrementNonce() {
 	wlt.Lock()
 	wlt.TransactOpts.Nonce.Add(wlt.TransactOpts.Nonce, big.NewInt(int64(1)))
