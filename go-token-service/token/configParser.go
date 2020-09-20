@@ -1,4 +1,4 @@
-package whitelistableToken
+package token
 
 import (
 	"encoding/json"

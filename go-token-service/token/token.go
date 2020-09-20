@@ -1,4 +1,4 @@
-package whitelistableToken
+package token
 
 import (
 	"context"
@@ -108,11 +108,14 @@ func GetWhitelistableToken() (*WhitelistableToken, error) {
 }
 
 func (wlt *WhitelistableToken) WhitelistAddress(i *WhitelistInput) (*TxOutput, error) {
+	txo := &TxOutput{ i.Address, "", false }
+
 	if ok := IsValidAddress(i.Address); !ok {
-		return nil, InvalidAddressError
+		return txo, InvalidAddressError
 	}
 
-	defer wlt.incrementNonce()
+	// increment nonce at start to prevent "Error: Known Transaction"
+	wlt.incrementNonce()
 
 	tx, err := wlt.Token.GrantRole(
 		wlt.TransactOpts,
@@ -120,18 +123,24 @@ func (wlt *WhitelistableToken) WhitelistAddress(i *WhitelistInput) (*TxOutput, e
 		common.HexToAddress(i.Address),
 	)
 	if err != nil {
-		return nil, err
+		fmt.Println("GrantRole: ", err)
+		return txo, err
 	}
 
-	return &TxOutput{tx.Hash().Hex()}, nil
+	txo.OK = true
+	txo.TransactionHash = tx.Hash().Hex()
+	return txo, nil
 }
 
 func (wlt *WhitelistableToken) Mint(i *MintInput) (*TxOutput, error) {
+	txo := &TxOutput{ i.Address, "", false }
+
 	if ok := IsValidAddress(i.Address); !ok {
-		return nil, InvalidAddressError
+		return txo, InvalidAddressError
 	}
 
-	defer wlt.incrementNonce()
+	// increment nonce at start to prevent "Error: Known Transaction"
+	wlt.incrementNonce()
 
 	tx, err := wlt.Token.Mint(
 		wlt.TransactOpts,
@@ -139,10 +148,12 @@ func (wlt *WhitelistableToken) Mint(i *MintInput) (*TxOutput, error) {
 		big.NewInt(int64(i.Amount)),
 	)
 	if err != nil {
-		return nil, err
+		return txo, err
 	}
 
-	return &TxOutput{tx.Hash().Hex()}, nil
+	txo.OK = true
+	txo.TransactionHash = tx.Hash().Hex()
+	return txo, nil
 }
 
 // getStatusOfTX checks transaction Status - returns error on Status != 0
