@@ -10,13 +10,15 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/core/types"
 
-
-	"ERC20Whitelistable/go-token-service/config"
 	"ERC20Whitelistable/go-token-service/contracts"
+)
+
+var (
+	InvalidAddressError = errors.New("Invalid Address")
 )
 
 type WhitelistableToken struct {
@@ -35,7 +37,7 @@ type WhitelistableToken struct {
 // Generates WhitelistablToken's context needed for contract's method calls
 func GetWhitelistableToken() (*WhitelistableToken, error) {
 	// reading all specific and sensitive data from config file
-	cfg := config.GetConfig()
+	cfg := GetConfig()
 
 	// set up client
 	client, err := ethclient.Dial(fmt.Sprintf("https://%s.infura.io/v3/%s", cfg.Network, cfg.InfuraKey))
@@ -105,47 +107,42 @@ func GetWhitelistableToken() (*WhitelistableToken, error) {
 	return obj, nil
 }
 
-func (wlt *WhitelistableToken) WhitelistAddress(address string) error {
+func (wlt *WhitelistableToken) WhitelistAddress(i *WhitelistInput) (*TxOutput, error) {
+	if ok := IsValidAddress(i.Address); !ok {
+		return nil, InvalidAddressError
+	}
+
 	defer wlt.incrementNonce()
+
 	tx, err := wlt.Token.GrantRole(
 		wlt.TransactOpts,
 		wlt.WhitelistedRole,
-		common.HexToAddress(address),
+		common.HexToAddress(i.Address),
 	)
 	if err != nil {
-		return err
-	}
-	// TODO: remove
-	// TODO: no error on revert
-	fmt.Printf("WhitelistAddress tx sent: %s\n", tx.Hash().Hex())
-
-	err = wlt.getStatusOfTX(tx)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &TxOutput{tx.Hash().Hex()}, nil
 }
 
-func (wlt *WhitelistableToken) Mint(address string, amount int) error {
+func (wlt *WhitelistableToken) Mint(i *MintInput) (*TxOutput, error) {
+	if ok := IsValidAddress(i.Address); !ok {
+		return nil, InvalidAddressError
+	}
+
 	defer wlt.incrementNonce()
 
 	tx, err := wlt.Token.Mint(
 		wlt.TransactOpts,
-		common.HexToAddress(address),
-		big.NewInt(int64(amount)),
+		common.HexToAddress(i.Address),
+		big.NewInt(int64(i.Amount)),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	// TODO: remove
-	fmt.Printf("Mint tx sent: %s\n", tx.Hash().Hex())
 
-	err = wlt.getStatusOfTX(tx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return &TxOutput{tx.Hash().Hex()}, nil
 }
 
 // getStatusOfTX checks transaction Status - returns error on Status != 0

@@ -1,4 +1,4 @@
-package config
+package whitelistableToken
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ var config *appConfig
 var once sync.Once
 var configFilePath = ""
 
-// SetConfigFilePath allways run once before GetConfig() !
+// SetConfigFilePath allways run before GetConfig() !
 func SetConfigFilePath(filePath string) {
 	configFilePath = filePath
 }
