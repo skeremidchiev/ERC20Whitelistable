@@ -12,6 +12,6 @@ ERC20 Token with Whitelistable and Mintable functionality
   "privateKey": "user-private-key",
   "network": "main net / ropsten / etc.",
   "infuraKey": "PROJECT ID",
-  "contractAddress": "0xa845bE40dd6CF745EAC313837bf7F1eFfBCF0bE4"
+  "contractAddress": "0xa845bE40dd6CF745EAC313837bf7F1eFfBCF0bE4" // contract address deployed on ropsten
 }
 ```
