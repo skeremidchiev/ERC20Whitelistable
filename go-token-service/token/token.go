@@ -39,8 +39,7 @@ type WhitelistableToken struct {
 	*sync.Mutex // used to protect TransactOpts.Nonce
 }
 
-// GetWhitelistableToken
-// Generates WhitelistablToken's context needed for contract's method calls
+// GetWhitelistableToken generates WhitelistablToken's context needed for contract's method calls
 func GetWhitelistableToken() (*WhitelistableToken, error) {
 	// reading all specific and sensitive data from config file
 	cfg := GetConfig()
@@ -115,6 +114,7 @@ func GetWhitelistableToken() (*WhitelistableToken, error) {
 	return obj, nil
 }
 
+// WhitelistAddress
 func (wlt *WhitelistableToken) WhitelistAddress(i *WhitelistInput) (*TxOutput, error) {
 	txo := &TxOutput{i.Address, "", false}
 
@@ -146,6 +146,7 @@ func (wlt *WhitelistableToken) WhitelistAddress(i *WhitelistInput) (*TxOutput, e
 	return txo, nil
 }
 
+// Mint
 func (wlt *WhitelistableToken) Mint(i *MintInput) (*TxOutput, error) {
 	txo := &TxOutput{i.Address, "", false}
 

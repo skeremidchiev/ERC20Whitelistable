@@ -19,6 +19,10 @@ type MintInput struct {
 	Amount  string `json:"amount"`
 }
 
+type MintMultiInput struct {
+	Mints []MintInput `json:"mints"`
+}
+
 // TxOutput simple wrapper for WhitelistAddress() and Mint() outputs
 type TxOutput struct {
 	Address         string `json:"address"`

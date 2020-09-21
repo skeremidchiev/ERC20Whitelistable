@@ -19,7 +19,7 @@ const (
 	internalServerError = "Internal Server Error!"
 )
 
-func Auth(fn http.HandlerFunc) http.HandlerFunc {
+func auth(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
 
@@ -58,13 +58,7 @@ func whitelistHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := wlt.WhitelistAddress(&input)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(internalServerError))
-		return
-	}
-
+	output, _ := wlt.WhitelistAddress(&input)
 	json.NewEncoder(w).Encode(output)
 }
 
@@ -109,6 +103,71 @@ func whitelistMultipleHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(multiOutput)
 }
 
+func mintHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Endpoint: mint")
+	var input token.MintInput
+
+	reqBody, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(internalServerError))
+		return
+	}
+
+	err = json.Unmarshal(reqBody, &input)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(internalServerError))
+		return
+	}
+
+	output, _ := wlt.Mint(&input)
+	json.NewEncoder(w).Encode(output)
+}
+
+func mintMultipleHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Endpoint: mint multiple")
+	var input token.MintMultiInput
+
+	reqBody, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(internalServerError))
+		return
+	}
+
+	err = json.Unmarshal(reqBody, &input)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(internalServerError))
+		return
+	}
+
+	multiOutput := token.GetTxMultiOutput()
+	var wg sync.WaitGroup
+
+	for _, mint := range input.Mints {
+		// skip incorrect inputs
+		if mint.Address == "" {
+			continue
+		}
+
+		wg.Add(1)
+		go func(t token.MintInput, wg *sync.WaitGroup) {
+			defer wg.Done()
+			// no need to handle the error
+			output, _ := wlt.Mint(&t)
+			multiOutput.Add(output)
+		}(mint, &wg)
+	}
+	wg.Wait()
+
+	json.NewEncoder(w).Encode(multiOutput)
+}
+
+
 func Run() {
 	// initialize token context
 	var err error
@@ -118,9 +177,11 @@ func Run() {
 		return
 	}
 
-	http.HandleFunc("/", Auth(homePageHandler))
-	http.HandleFunc("/whitelist", Auth(whitelistHandler))
-	http.HandleFunc("/whitelist/multiple", Auth(whitelistMultipleHandler))
+	http.HandleFunc("/", auth(homePageHandler))
+	http.HandleFunc("/whitelist", auth(whitelistHandler))
+	http.HandleFunc("/whitelist/multiple", auth(whitelistMultipleHandler))
+	http.HandleFunc("/mint", auth(mintHandler))
+	http.HandleFunc("/mint/multiple", auth(mintMultipleHandler))
 
 	log.Println("Server starting ...")
 	defer log.Println("Server shutting down ...")
