@@ -16,14 +16,14 @@ type WhitelistMultiInput struct {
 // WhitelistInput simple wrapper for Mint() inputs
 type MintInput struct {
 	Address string `json:"address"`
-	Amount  int    `json:"amount"`
+	Amount  string `json:"amount"`
 }
 
 // TxOutput simple wrapper for WhitelistAddress() and Mint() outputs
 type TxOutput struct {
-	Address string `json:"address"`
+	Address         string `json:"address"`
 	TransactionHash string `json:"txHash"`
-	OK bool `json:"ok"`
+	OK              bool   `json:"ok"`
 }
 
 type TxMultiOutput struct {
